@@ -8,6 +8,7 @@ MIGA is a command-line tool that allows you to fetch content from the IPFS (Inte
 - Fetch content using a CID
 - Bootstrap with well-known IPFS nodes
 - Verbose logging option for debugging
+- Web interface for sharing downloaded content with others
 
 ## Requirements
 
@@ -44,6 +45,9 @@ MIGA --cid <CONTENT_ID>
 - `-c, --cid <CID>`: The Content Identifier (CID) of the content to fetch from IPFS (required)
 - `-o, --output <FILE>`: Path to save the fetched content (optional)
 - `-v, --verbose`: Enable verbose output for debugging
+- `--web`: Enable web server for content sharing
+- `--port <PORT>`: Web server port (default: 8080)
+- `--description <TEXT>`: Description of the content being fetched (shown in web interface)
 - `-h, --help`: Display help information
 - `-V, --version`: Display version information
 
@@ -64,18 +68,33 @@ MIGA --cid <CONTENT_ID>
    MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --verbose
    ```
 
+   4. Fetch content and share it via web interface:
+   ```
+   MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --web --description "IPFS Documentation"
+   ```
+
+   5. Fetch content and share it on a specific port:
+   ```
+   MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --web --port 9000
+   ```
+
 ### Example Scripts
 
 The project includes example scripts in the `examples` directory to help you get started:
 
-- **Windows**: Run `examples\fetch_example.bat` to fetch a sample IPFS content
-- **Linux/macOS**: Run `examples/fetch_example.sh` to fetch a sample IPFS content
+- **Windows**: 
+  - Run `examples\fetch_example.bat` to fetch a sample IPFS content
+  - Run `examples\share_example.bat` to fetch and share content via web interface
+- **Linux/macOS**: 
+  - Run `examples/fetch_example.sh` to fetch a sample IPFS content
+  - Run `examples/share_example.sh` to fetch and share content via web interface
 
 These scripts:
 1. Set the appropriate log level
 2. Build the project if needed
 3. Fetch a well-known IPFS content (the IPFS welcome page)
 4. Display the results
+5. For share examples, start a web server to share the content
 
 ## Environment Variables
 
@@ -98,9 +117,10 @@ MIGA uses the libp2p library to connect to the IPFS network. When you provide a 
 
 ## Current Limitations
 
-- The tool currently only prints debug information about the retrieved content
-- File saving functionality is not fully implemented yet
 - Limited error handling for network issues
+- Basic web interface with minimal styling
+- No authentication for web access (anyone with network access can download shared content)
+- No HTTPS support for the web server (uses HTTP only)
 
 ## License
 
