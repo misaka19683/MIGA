@@ -1,5 +1,5 @@
 @echo off
-REM Example script to demonstrate using MIGA to fetch and share content via web
+REM Example script to demonstrate using MIGA to fetch and share content on the IPFS network
 
 REM Set the log level to info for better visibility
 set RUST_LOG=info
@@ -15,7 +15,8 @@ set CID=QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG
 echo Fetching and sharing content with CID: %CID%
 echo This may take a while as MIGA connects to the IPFS network...
 
-REM Run MIGA with the example CID, web sharing enabled, and a description
-.\target\release\MIGA.exe --cid %CID% --verbose --web --description "IPFS Welcome Page"
+REM Run MIGA with the example CID, IPFS sharing enabled, and a description
+.\target\release\MIGA.exe --cid %CID% --verbose --share --description "IPFS Welcome Page"
 
-REM Note: The script will not complete until you press Ctrl+C to stop the web server
+REM Note: The script will not complete until you press Ctrl+C to stop the IPFS node
+REM Other IPFS nodes can access the content using the CID while this node is running

@@ -1,7 +1,7 @@
 //! MIGA - A tool to fetch data from IPFS using libp2p
 //!
 
-mod web;
+// No web module needed for IPFS sharing
 
 /// This application connects to the IPFS network using the libp2p protocol stack
 /// and retrieves content based on its Content Identifier (CID).
@@ -48,25 +48,24 @@ struct Args {
     #[clap(short, long)]
     verbose: bool,
 
-    /// Enable web sharing mode
-    /// When enabled, starts a web server to share the fetched content
+    /// Enable IPFS sharing mode
+    /// When enabled, makes the fetched content available on the IPFS network
     #[clap(long)]
-    web: bool,
+    share: bool,
 
-    /// Web server port (default: 8080)
-    /// Only used when web sharing is enabled
-    #[clap(long, default_value = "8080")]
+    /// Port to listen for IPFS connections (default: 4001)
+    /// This is the standard IPFS port
+    #[clap(long, default_value = "4001")]
     port: u16,
 
     /// Description of the content being shared
-    /// Only used when web sharing is enabled
+    /// This is stored with the content metadata
     #[clap(long)]
     description: Option<String>,
 
-    /// Directory to store and serve shared content
-    /// Only used when web sharing is enabled
+    /// Directory to store shared content
     #[clap(long, default_value = "./shared")]
-    share_dir: PathBuf,
+    share_dir: PathBuf
 }
 
 /// Main entry point for the MIGA application
@@ -133,21 +132,18 @@ async fn main() -> Result<()> {
     // This is what we'll search for in the DHT
     let key = kad::RecordKey::from(cid.hash().to_bytes());
 
-    // Initialize web server if web sharing is enabled
-    let content_sender = if args.web {
-        // Ensure the share directory exists
+    // Ensure the share directory exists if sharing is enabled
+    if args.share {
         if !args.share_dir.exists() {
             fs::create_dir_all(&args.share_dir)?;
             info!("Created share directory: {:?}", args.share_dir);
         }
 
-        // Start the web server
-        info!("Starting web server on port {}", args.port);
-        let sender = web::run_web_server(args.port, args.share_dir.clone()).await?;
-        println!("Web server started at http://localhost:{}", args.port);
-        Some(sender)
-    } else {
-        None
+        // Configure the node to listen on the specified port for IPFS connections
+        let addr = format!("/ip4/0.0.0.0/tcp/{}", args.port);
+        info!("Configuring IPFS node to listen on {}", addr);
+        swarm.listen_on(addr.parse()?)?;
+        println!("IPFS node configured to share content on port {}", args.port);
     };
 
     // Start a Kademlia GET query to find the content
@@ -190,8 +186,8 @@ async fn main() -> Result<()> {
                 // This will help us understand the structure for future improvements
                 info!("Received a record from the IPFS network");
 
-                // Create some dummy data for testing the web server functionality
-                // In a real implementation, we would extract the actual content from the result
+                // Create some dummy data for testing the IPFS sharing functionality
+                // In a real implementation; we would extract the actual content from the result
                 let data = Some(format!("IPFS content for CID: {}\nThis is placeholder content for testing.", cid).into_bytes());
 
                 // Store the content data if we found it
@@ -206,7 +202,7 @@ async fn main() -> Result<()> {
                     } else {
                         // Generate a filename based on the CID if no output path is provided
                         let filename = format!("{}.bin", cid);
-                        if args.web {
+                        if args.share {
                             args.share_dir.join(&filename)
                         } else {
                             PathBuf::from(&filename)
@@ -221,19 +217,31 @@ async fn main() -> Result<()> {
                             } else {
                                 println!("Content saved to: {:?}", output_path);
 
-                                // Share the content via the web server if web sharing is enabled
-                                if let Some(sender) = &content_sender {
-                                    let shared_content = web::SharedContent {
-                                        cid: cid.to_string(),
-                                        path: output_path.clone(),
-                                        description: args.description.clone(),
+                                // Share the content via IPFS if sharing is enabled
+                                if args.share {
+                                    // Create a Kademlia record with the content
+                                    let record = kad::Record {
+                                        key: key.clone(),
+                                        value: data_value.clone(),
+                                        publisher: Some(peer_id),
+                                        expires: None,
                                     };
 
-                                    // Send the content to the web server
-                                    if let Err(e) = sender.send(shared_content).await {
-                                        error!("Failed to share content via web server: {}", e);
-                                    } else {
-                                        println!("Content is now available via the web server at http://localhost:{}/list", args.port);
+                                    // Put the record in the Kademlia DHT
+                                    info!("Publishing content to the IPFS network with CID: {}", cid);
+                                    match swarm.behaviour_mut().put_record(record, kad::Quorum::One) {
+                                        Ok(_) => {
+                                            println!("Content is now available on the IPFS network with CID: {}", cid);
+                                            println!("Other IPFS nodes can access this content using the CID");
+
+                                            // Print the multiaddress that other nodes can use to connect to this node
+                                            if let Some(addr) = swarm.listeners().next() {
+                                                println!("Your node address: {}/p2p/{}", addr, peer_id);
+                                            }
+                                        },
+                                        Err(e) => {
+                                            error!("Failed to publish content to the IPFS network: {}", e);
+                                        }
                                     }
                                 }
                             }
@@ -281,6 +289,18 @@ async fn main() -> Result<()> {
         }
     }
 
+    // 如果启用了 IPFS 共享并成功获取了内容，保持程序运行
+    if args.share && content_data.is_some() {
+        println!("🎉 内容获取完成！IPFS 节点将继续运行...");
+        println!("💡 按 Ctrl+C 停止节点");
+
+        // 保持主线程运行，让 IPFS 节点继续提供服务
+        loop {
+            tokio::time::sleep(Duration::from_secs(3600)).await;
+        }
+    }
+
+    println!("✅ 程序执行完成!");
     Ok(())
 }
 

@@ -8,7 +8,7 @@ MIGA is a command-line tool that allows you to fetch content from the IPFS (Inte
 - Fetch content using a CID
 - Bootstrap with well-known IPFS nodes
 - Verbose logging option for debugging
-- Web interface for sharing downloaded content with others
+- IPFS network sharing for making content available to other IPFS nodes
 
 ## Requirements
 
@@ -45,9 +45,9 @@ MIGA --cid <CONTENT_ID>
 - `-c, --cid <CID>`: The Content Identifier (CID) of the content to fetch from IPFS (required)
 - `-o, --output <FILE>`: Path to save the fetched content (optional)
 - `-v, --verbose`: Enable verbose output for debugging
-- `--web`: Enable web server for content sharing
-- `--port <PORT>`: Web server port (default: 8080)
-- `--description <TEXT>`: Description of the content being fetched (shown in web interface)
+- `--share`: Enable IPFS network sharing for making content available to other IPFS nodes
+- `--port <PORT>`: Port to listen for IPFS connections (default: 4001)
+- `--description <TEXT>`: Description of the content being shared (stored with content metadata)
 - `-h, --help`: Display help information
 - `-V, --version`: Display version information
 
@@ -68,14 +68,14 @@ MIGA --cid <CONTENT_ID>
    MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --verbose
    ```
 
-   4. Fetch content and share it via web interface:
+   4. Fetch content and share it on the IPFS network:
    ```
-   MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --web --description "IPFS Documentation"
+   MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --share --description "IPFS Documentation"
    ```
 
    5. Fetch content and share it on a specific port:
    ```
-   MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --web --port 9000
+   MIGA --cid QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx --share --port 5001
    ```
 
 ### Example Scripts
@@ -84,17 +84,17 @@ The project includes example scripts in the `examples` directory to help you get
 
 - **Windows**: 
   - Run `examples\fetch_example.bat` to fetch a sample IPFS content
-  - Run `examples\share_example.bat` to fetch and share content via web interface
+  - Run `examples\share_example.bat` to fetch and share content on the IPFS network
 - **Linux/macOS**: 
   - Run `examples/fetch_example.sh` to fetch a sample IPFS content
-  - Run `examples/share_example.sh` to fetch and share content via web interface
+  - Run `examples/share_example.sh` to fetch and share content on the IPFS network
 
 These scripts:
 1. Set the appropriate log level
 2. Build the project if needed
 3. Fetch a well-known IPFS content (the IPFS welcome page)
 4. Display the results
-5. For share examples, start a web server to share the content
+5. For share examples, make the content available on the IPFS network for other nodes to access
 
 ## Environment Variables
 
@@ -115,12 +115,20 @@ MIGA uses the libp2p library to connect to the IPFS network. When you provide a 
 4. Retrieves the content from peers that have it
 5. Displays or saves the content based on your options
 
+When sharing is enabled, MIGA also:
+
+1. Makes the content available on the IPFS network using the Kademlia DHT
+2. Listens for incoming connections from other IPFS nodes
+3. Provides the content to other nodes that request it using the CID
+4. Displays your node's multiaddress that other nodes can use to connect directly
+
 ## Current Limitations
 
 - Limited error handling for network issues
-- Basic web interface with minimal styling
-- No authentication for web access (anyone with network access can download shared content)
-- No HTTPS support for the web server (uses HTTP only)
+- No persistence for shared content (content is only available while the program is running)
+- Limited NAT traversal capabilities (may require port forwarding for full connectivity)
+- No content verification or integrity checking beyond what's provided by CIDs
+- No bandwidth or resource usage limits
 
 ## License
 
